@@ -11,14 +11,60 @@ import AVFoundation
 
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
-    let swiftBlogs = ["Cross", "to", "bear"]
-    let textCellIdentifier = "TapeCell"
-
+    // array of recordings
+    var animals = [String]()
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        
+        // Register the table view cell class and its reuse id
+        self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellReuseIdentifier)
+        
+        // This view controller itself will provide the delegate methods and row data for the table view.
+        tableView.delegate = self
+        tableView.dataSource = self
+        
+        // get the "data" (the list of files) for the table 
+        // Get the document directory url
+        let documentsUrl =  FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        do {
+            // Get the directory contents urls (including subfolders urls)
+            let directoryContents = try FileManager.default.contentsOfDirectory(at: documentsUrl, includingPropertiesForKeys: nil, options: [])
+            print(directoryContents)
+            
+            let my_files = directoryContents.flatMap({$0.lastPathComponent})
+            for fn in my_files {
+                animals.append(fn)
+            }
+            
+            // if you want to filter the directory contents you can do like this:
+//            let mp3Files = directoryContents.filter{ $0.pathExtension == "m4a" }
+//            print("m4a urls:",mp3Files)
+//            let mp3FileNames = mp3Files.map{ $0.deletingPathExtension().lastPathComponent }
+//            print("m4a list:", mp3FileNames)
+            
+            
+            
+        } catch let error as NSError {
+            print(error.localizedDescription)
+        }
+        
+        
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(AVAudioSessionCategoryPlayAndRecord)
+            try audioRecorder = AVAudioRecorder(url: directoryURL()!,
+                                                settings: recordSettings)
+            audioRecorder.prepareToRecord()
+        } catch {}
+    }
     
     var audioRecorder:AVAudioRecorder!
     
@@ -29,26 +75,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         AVEncoderAudioQualityKey :
             NSNumber(value: Int32(AVAudioQuality.medium.rawValue))]
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        
-        
-        // Register the table view cell class and its reuse id
-        self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellReuseIdentifier)
-        
-        // This view controller itself will provide the delegate methods and row data for the table view.
-        tableView.delegate = self
-        tableView.dataSource = self
-        
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(AVAudioSessionCategoryPlayAndRecord)
-            try audioRecorder = AVAudioRecorder(url: directoryURL()!,
-                                                settings: recordSettings)
-            audioRecorder.prepareToRecord()
-        } catch {}
-    }
     
     func directoryURL() -> URL? {
         let fileManager = FileManager.default
@@ -84,10 +110,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     }
 
     
-    // these functions needed to conform to UITableViewDataSource protocol
     
-    // Data model: These strings will be the data for the table view cells
-    let animals: [String] = ["Horse", "Cow", "Camel", "Sheep", "Goat"]
+
+    
     
     // cell reuse id (cells that scroll out of view can be reused)
     let cellReuseIdentifier = "cell"
@@ -108,7 +133,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         
         // set the text from the data model
         cell.textLabel?.text = self.animals[indexPath.row]
-        
         return cell
     }
     
