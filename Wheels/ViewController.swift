@@ -13,6 +13,24 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     
     // array of recordings
     var animals = [String]()
+    var timer: Timer!
+    
+    
+    func updateAudioMeter(_ timer:Timer) {
+        
+        if audioRecorder.isRecording {
+            let hour = Int(audioRecorder.currentTime / 360)
+            let min = Int(audioRecorder.currentTime / 60)
+            let sec = Int(audioRecorder.currentTime.truncatingRemainder(dividingBy: 60))
+            let s = String(format: "%02d:%02d:%02d", hour, min, sec)
+            timestamp.text = s
+            audioRecorder.updateMeters()
+            // if you want to draw some graphics...
+            //var apc0 = recorder.averagePowerForChannel(0)
+            //var peak0 = recorder.peakPowerForChannel(0)
+        }
+    }
+    
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -21,7 +39,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         
         // Register the table view cell class and its reuse id
         self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellReuseIdentifier)
@@ -43,13 +60,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             for fn in my_files {
                 animals.append(fn)
             }
-            
-            // if you want to filter the directory contents you can do like this:
-//            let mp3Files = directoryContents.filter{ $0.pathExtension == "m4a" }
-//            print("m4a urls:",mp3Files)
-//            let mp3FileNames = mp3Files.map{ $0.deletingPathExtension().lastPathComponent }
-//            print("m4a list:", mp3FileNames)
-            
             
             
         } catch let error as NSError {
@@ -80,9 +90,17 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let fileManager = FileManager.default
         let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
         let documentDirectory = urls[0] as URL
-        let soundURL = documentDirectory.appendingPathComponent("sound.m4a")
+        
+        let format = DateFormatter()
+        format.dateFormat="yyyy-MM-dd-HH-mm-ss"
+        let currentFileName = "recording-\(format.string(from: Date())).m4a"
+        print(currentFileName)
+        
+        let soundURL = documentDirectory.appendingPathComponent(currentFileName)
         return soundURL
     }
+    
+    @IBOutlet var timestamp: UILabel!
     
     @IBOutlet weak var recordButton: UIButton!
     
@@ -93,6 +111,11 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             do {
                 try audioSession.setActive(true)
                 audioRecorder.record()
+                self.timer = Timer.scheduledTimer(timeInterval: 0.1,
+                                                       target:self,
+                                                       selector:#selector(updateAudioMeter(_:)),
+                                                       userInfo:nil,
+                                                       repeats:true)
             } catch {}
         }
     }
@@ -108,11 +131,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             try audioSession.setActive(false)
         } catch {}
     }
-
-    
-    
-
-    
     
     // cell reuse id (cells that scroll out of view can be reused)
     let cellReuseIdentifier = "cell"
@@ -139,6 +157,22 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     // method to run when table view cell is tapped
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         print("You tapped cell number \(indexPath.row).")
+    }
+    
+    // this method handles row deletion
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+        
+        if editingStyle == .delete {
+            
+            // remove the item from the data model
+            animals.remove(at: indexPath.row)
+            
+            // delete the table view row
+            tableView.deleteRows(at: [indexPath], with: .fade)
+            
+        } else if editingStyle == .insert {
+            // Not used in our example, but if you were adding a new row, this is where you would do it.
+        }
     }
 
 }

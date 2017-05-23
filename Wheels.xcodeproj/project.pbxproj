@@ -99,13 +99,13 @@
 		FA07E06A1ED4179B00B01088 /* Wheels */ = {
 			isa = PBXGroup;
 			children = (
+				FA07E0771ED4179B00B01088 /* LaunchScreen.storyboard */,
 				FA07E06B1ED4179B00B01088 /* AppDelegate.swift */,
+				FA07E07A1ED4179B00B01088 /* Info.plist */,
+				FA07E0751ED4179B00B01088 /* Assets.xcassets */,
+				FA07E0721ED4179B00B01088 /* Wheels.xcdatamodeld */,
 				FA07E06D1ED4179B00B01088 /* ViewController.swift */,
 				FA07E06F1ED4179B00B01088 /* Main.storyboard */,
-				FA07E0751ED4179B00B01088 /* Assets.xcassets */,
-				FA07E0771ED4179B00B01088 /* LaunchScreen.storyboard */,
-				FA07E07A1ED4179B00B01088 /* Info.plist */,
-				FA07E0721ED4179B00B01088 /* Wheels.xcdatamodeld */,
 			);
 			path = Wheels;
 			sourceTree = "<group>";
@@ -507,6 +507,7 @@
 				FA07E0951ED4179B00B01088 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		FA07E0961ED4179B00B01088 /* Build configuration list for PBXNativeTarget "WheelsTests" */ = {
 			isa = XCConfigurationList;
@@ -515,6 +516,7 @@
 				FA07E0981ED4179B00B01088 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		FA07E0991ED4179B00B01088 /* Build configuration list for PBXNativeTarget "WheelsUITests" */ = {
 			isa = XCConfigurationList;
@@ -523,6 +525,7 @@
 				FA07E09B1ED4179B00B01088 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 
