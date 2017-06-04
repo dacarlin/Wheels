@@ -10,33 +10,52 @@ import UIKit
 import AVFoundation
 
 class tape_recorder {
-    func load(tape: String) {
+    
+    var loaded_tape_path: String!
+    
+    
+    func load(_ tape: String) {
         print("Loading", tape)
+        loaded_tape_path = tape 
+    }
+    
+    func play() {
+        // this function plays whatever is inside 
+        print(loaded_tape_path)
+        
+        
     }
 }
 
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     // create a tape recorder
-    let tp = tape_recorder()
-
-    // array of recordings
-    var tapes = [String]()
-
-    // this is used during recording
-    var timer: Timer !
-
-    // timestamp on recording (and meters)
-    @IBOutlet var timestamp: UILabel !
-
-    var audioRecorder: AVAudioRecorder !
-
-    let recordSettings = [
-        AVSampleRateKey: NSNumber(value: Float(44100.0)),
-        AVFormatIDKey: NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
-        AVNumberOfChannelsKey: NSNumber(value: Int32(1)),
-        AVEncoderAudioQualityKey: NSNumber(value: Int32(AVAudioQuality.medium.rawValue))
-    ]
+//    let tp = tape_recorder()
+//
+//    // array of recordings
+//    var tapes = [URL]()
+//
+//    // this is used during recording
+//    var timer: Timer!
+//
+//    // timestamp on recording (and meters)
+//    @IBOutlet var timestamp: UILabel!
+//
+//    var audioRecorder: AVAudioRecorder!
+//    var player: AVAudioPlayer!
+//
+//    let recordSettings = [
+//        AVSampleRateKey: NSNumber(value: Float(44100.0)),
+//        AVFormatIDKey: NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
+//        AVNumberOfChannelsKey: NSNumber(value: Int32(1)),
+//        AVEncoderAudioQualityKey: NSNumber(value: Int32(AVAudioQuality.medium.rawValue))
+//    ]
+//    
+//    // meters
+//    @IBOutlet weak var level0: UILabel!
+//    @IBOutlet weak var level1: UILabel!
+//    @IBOutlet weak var level_bar: UIProgressView!
+//    @IBOutlet weak var average_bar: UIProgressView!
 
     func updateAudioMeter(_ timer: Timer) {
         if audioRecorder.isRecording {
@@ -79,12 +98,16 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         do {
             // Get the directory contents urls (including subfolders urls)
             let directoryContents = try FileManager.default.contentsOfDirectory(at: documentsUrl, includingPropertiesForKeys: nil, options: [])
-            print(directoryContents)
-
-            let my_files = directoryContents.flatMap({$0.lastPathComponent})
-            for fn in my_files {
+            for fn in directoryContents {
                 tapes.append(fn)
             }
+
+//            print(directoryContents)
+//
+//            let my_files = directoryContents.flatMap({$0.lastPathComponent})
+//            for fn in my_files {
+//                tapes.append(fn)
+//            }
 
 
         } catch let error as NSError {
@@ -152,6 +175,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         }
     }
 
+    
+    // playback
+    
     // table view
     
     // cell reuse id (cells that scroll out of view can be reused)
@@ -172,11 +198,15 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let cell:UITableViewCell = self.tableView.dequeueReusableCell(withIdentifier: cellReuseIdentifier) as UITableViewCell!
 
         // set the text from the data model
-        cell.textLabel?.text = self.tapes[indexPath.row]
+        cell.textLabel?.text = self.tapes[indexPath.row].absoluteString
         return cell
     }
 
-    // method to run when table view cell is tapped
+    // loaded tape label 
+    // and loading methood play when tape is tapped
+    @IBOutlet weak var loaded_tape_label: UILabel!
+    var tapped_url: URL!
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         print("You tapped cell number \(indexPath.row).")
         // get the tape in this cell
@@ -185,9 +215,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         print(self.tapes)
         print(self.tapes[indexPath.row])
         let tapped_tape = self.tapes[indexPath.row]
-        print( tapped_tape )
         // load this tape
-        tp.load(tape:tapped_tape)
+        // tp.load(tapped_tape)
+        loaded_tape_label.text = tapped_tape.absoluteString
     }
 
     // this method handles row deletion
@@ -202,17 +232,86 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         }
     }
 
+    // tape playback interface
+    
+    func audioFileInArray(_ tosser: String) -> [String] {
+        var audioFiles = [String]()
+        let filemanager:FileManager = FileManager()
+        let files = filemanager.enumerator(atPath: NSHomeDirectory() + "/")
+        while let file = files?.nextObject() {
+            audioFiles.append(file as! String)
+        }
+        return audioFiles
+    }
+    
+    
+    @IBOutlet weak var play: UIButton!
+    @IBAction func doPlay(_ sender: UIButton) {
+
+        print("Play was pressed")
+        
+//        do{
+//            try player = AVAudioPlayer(contentsOf: tapped_url)
+//            player.prepareToPlay()
+//            player.play()
+//        } catch let err as NSError {
+//            print(err.debugDescription)
+//        }
+        
+        self.play_sound(for:"recording-2017-05-29-03-47-04", type:"m4a")
+
+    }
+    
+    func play_sound(for resource: String, type: String) {
+        
+        
+        guard let path = Bundle.main.path(forResource: resource, ofType: type) else {
+            return
+        }
+        
+        // Convert path to URL for audio player
+        let sound = URL(fileURLWithPath: path)
+        do {
+            let audioPlayer = try AVAudioPlayer(contentsOf: sound)
+            audioPlayer.prepareToPlay()
+            audioPlayer.play()
+        } catch {
+            // Create an assertion crash in the event that the app fails to play the sound
+            assert(false, error.localizedDescription)
+        }
+    }
+    
+    
+    
+//    instance variables
+    
+    let tp = tape_recorder()
+    
+    // array of recordings
+    var tapes = [URL]()
+    
+    // this is used during recording
+    var timer: Timer!
+    
+    // timestamp on recording (and meters)
+    @IBOutlet var timestamp: UILabel!
+    
+    var audioRecorder: AVAudioRecorder!
+    var player: AVAudioPlayer!
+    
+    let recordSettings = [
+        AVSampleRateKey: NSNumber(value: Float(44100.0)),
+        AVFormatIDKey: NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
+        AVNumberOfChannelsKey: NSNumber(value: Int32(1)),
+        AVEncoderAudioQualityKey: NSNumber(value: Int32(AVAudioQuality.medium.rawValue))
+    ]
+    
     // meters
     @IBOutlet weak var level0: UILabel!
     @IBOutlet weak var level1: UILabel!
     @IBOutlet weak var level_bar: UIProgressView!
     @IBOutlet weak var average_bar: UIProgressView!
 
-    // tape playback interface
-    @IBOutlet weak var play: UIButton!
-    @IBAction func doPlay(_ sender: UIButton) {
-        print("Play was pressed")
-    }
-
+    
 
 }

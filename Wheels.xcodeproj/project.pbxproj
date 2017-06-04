@@ -196,6 +196,7 @@
 				TargetAttributes = {
 					FA07E0671ED4179A00B01088 = {
 						CreatedOnToolsVersion = 8.2.1;
+						DevelopmentTeam = QU23C6MGP2;
 						ProvisioningStyle = Automatic;
 					};
 					FA07E07E1ED4179B00B01088 = {
@@ -414,7 +415,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = QU23C6MGP2;
 				INFOPLIST_FILE = Wheels/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = alex.Wheels;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -426,7 +429,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = QU23C6MGP2;
 				INFOPLIST_FILE = Wheels/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = alex.Wheels;
 				PRODUCT_NAME = "$(TARGET_NAME)";
