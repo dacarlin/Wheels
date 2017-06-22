@@ -9,8 +9,6 @@
 import UIKit
 import AVFoundation
 
-
-
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     override func didReceiveMemoryWarning() {
@@ -29,7 +27,12 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
 
     }
     
-
+    
+    /////////////////////////////////////////////////////
+    // 2 utility functions for accessing the "tapes"
+    // as URL from the disk
+    /////////////////////////////////////////////////////
+    
     func init_audio() {
         // function for initializing audio
         let audioSession = AVAudioSession.sharedInstance()
@@ -42,11 +45,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         } catch {}
     }
     
-    
-    
-    // 2 utility functions for accessing the "tapes"
-    // as URL from the disk
-    
     func update_tape_view() {
         // get the "data" (the list of files) for the table
         // Get the document directory url
@@ -55,22 +53,18 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         do {
             // Get the directory contents urls (including subfolders urls)
             let directoryContents = try FileManager.default.contentsOfDirectory(at: documentsUrl, includingPropertiesForKeys: nil, options: [])
-            print(directoryContents)
             
-            let my_files = directoryContents.flatMap({$0.lastPathComponent})
-            for fn in my_files {
-                animals.append(fn)
-                
-                // right now, it has a side effect! 
-                // change to return this animals list
+            for url in directoryContents {
+                tape_list.append(url)
             }
+            
+            print("tape list:", tape_list)
             
             
         } catch let error as NSError {
             print(error.localizedDescription)
         }
     }
-
 
     func directoryURL() -> URL? {
         let fileManager = FileManager.default
@@ -88,13 +82,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     
     
     
-    
-    
-    
-    
-    
-    
-    // tape recorder interface
+    //////////////////////////////////
+    //// tape recorder interface
+    //////////////////////////////////
     
     var audioRecorder:AVAudioRecorder!
     
@@ -105,11 +95,13 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         AVEncoderAudioQualityKey :
             NSNumber(value: Int32(AVAudioQuality.medium.rawValue))]
     
-    // array of recordings
-    var animals = [String]()
     var timer: Timer!
     
     @IBOutlet var levelBar: UIView!
+    @IBOutlet var timestamp: UILabel!
+    @IBOutlet weak var recordButton: UIButton!
+    @IBOutlet weak var stopButton: UIButton!
+    @IBOutlet weak var playButton: UIButton!
     
     func updateAudioMeter(_ timer:Timer) {
         
@@ -127,13 +119,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             print(peak0)
         }
     }
-    
-    
-
-
-    @IBOutlet var timestamp: UILabel!
-
-    @IBOutlet weak var recordButton: UIButton!
 
     @IBAction func doRecordAction(_ sender: AnyObject) {
         print("Begin recording")
@@ -142,18 +127,12 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             do {
                 try audioSession.setActive(true)
                 audioRecorder.record()
-                self.timer = Timer.scheduledTimer(timeInterval: 0.1,
-                                                       target:self,
-                                                       selector:#selector(updateAudioMeter(_:)),
-                                                       userInfo:nil,
-                                                       repeats:true)
-            } catch {}
+                self.timer = Timer.scheduledTimer(timeInterval: 0.1,target:self,selector:#selector(updateAudioMeter(_:)),userInfo:nil,repeats:true)
+            } catch {
+                print("Error in recordin")
+            }
         }
     }
-
-    
-    @IBOutlet weak var stopButton: UIButton!
-    @IBOutlet weak var playButton: UIButton!
 
     @IBAction func doStopAction(_ sender: Any) {
         // function to run when "Stop" is pressed
@@ -165,60 +144,75 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         } catch {
             // there was an error relinquishing the audio session
         }
+        
+        // and update the tape view to provide user feedback: tape saved! 
+        self.update_tape_view()
     }
+    
+    var player: AVAudioPlayer = AVAudioPlayer()
     
     @IBAction func doPlayAction(_ sender: Any) {
         // function to run when "Play" is pressed
+        
+        if let tape_url = tp {
+            // if a tape has been loaded 
+            // play that tape 
+            
+            do {
+                try player = AVAudioPlayer(contentsOf: tape_url)
+                player.play()
+            } catch {
+                // error setting up player
+                // or player
+                print("Error playing")
+            }
+        }
     }
     
     
     
+    ////////////////////////////////////
+    //// tape stack interface
+    ////////////////////////////////////
     
-    
-    
-    
-    
-    
-    
-    // tape deck / stack interface
+    var animals = [String]()
+    var tape_list = [URL]() // empty list of URL which we will use to keep tapes
 
-    // cell reuse id (cells that scroll out of view can be reused)
+    
     let cellReuseIdentifier = "cell"
-
-    // don't forget to hook this up from the storyboard
     @IBOutlet var tableView: UITableView!
 
-    // number of rows in table view
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.animals.count
+        // length of table view
+        return self.tape_list.count
     }
 
-    // create a cell for each table view row
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-
         // create a new cell if needed or reuse an old one
-        let cell:UITableViewCell = self.tableView.dequeueReusableCell(withIdentifier: cellReuseIdentifier) as UITableViewCell!
-
         // set the text from the data model
-        cell.textLabel?.text = self.animals[indexPath.row]
+        let cell:UITableViewCell = self.tableView.dequeueReusableCell(withIdentifier: cellReuseIdentifier) as UITableViewCell!
+        cell.textLabel?.text = self.tape_list[indexPath.row].lastPathComponent
         return cell
     }
-
-    // method to run when table view cell is tapped
+    
+    var tp: URL!
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // method to run when table view cell is tapped
         print("You tapped cell number \(indexPath.row).")
+        self.tp = tape_list[indexPath.row]
+        print(self.tp)
     }
-
-    // this method handles row deletion
+    
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
 
         if editingStyle == .delete {
 
             // remove the item from the data model
-            animals.remove(at: indexPath.row)
+            //tape_list.remove(at: indexPath.row)
 
             // delete the table view row
-            tableView.deleteRows(at: [indexPath], with: .fade)
+            //tableView.deleteRows(at: [indexPath], with: .fade)
 
         } else if editingStyle == .insert {
             // Not used in our example, but if you were adding a new row, this is where you would do it.
