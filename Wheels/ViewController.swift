@@ -9,6 +9,21 @@
 import UIKit
 import AVFoundation
 
+class Tape {
+    // class to hold tape metadata 
+    
+    var url: URL!
+    var name: String!
+    var duration: String! // ("43 seconds")
+    
+    init(url: URL) {
+        // create a tape from a URL
+        self.url = url
+        self.name = url.lastPathComponent
+        self.duration = "43 seconds"
+    }
+}
+
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     override func didReceiveMemoryWarning() {
@@ -33,18 +48,33 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     // as URL from the disk
     /////////////////////////////////////////////////////
     
+    func directoryURL() -> URL? {
+        let fileManager = FileManager.default
+        let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentDirectory = urls[0] as URL
+        
+        let format = DateFormatter()
+        format.dateFormat="yyyy-MM-dd HH:mm:ss"
+        let currentFileName = "Tape \(format.string(from: Date())).m4a"
+        
+        let soundURL = documentDirectory.appendingPathComponent(currentFileName)
+        return soundURL
+    }
+    
     func init_audio() {
         // function for initializing audio
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(AVAudioSessionCategoryPlayAndRecord)
-            try audioRecorder = AVAudioRecorder(url: directoryURL()!,
-                                                settings: recordSettings)
+            try audioRecorder = AVAudioRecorder(url: directoryURL()!, settings: recordSettings)
             audioRecorder.isMeteringEnabled = true
             audioRecorder.prepareToRecord()
-        } catch {}
+        } catch {
+            // Error initializing audio
+        }
     }
     
+    var tapes = [Tape]()
     func update_tape_view() {
         // get the "data" (the list of files) for the table
         // Get the document directory url
@@ -53,58 +83,42 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         do {
             // Get the directory contents urls (including subfolders urls)
             let directoryContents = try FileManager.default.contentsOfDirectory(at: documentsUrl, includingPropertiesForKeys: nil, options: [])
-            
             for url in directoryContents {
                 tape_list.append(url)
             }
-            
-            print("tape list:", tape_list)
-            
-            
+            for url in directoryContents {
+                let my_tape = Tape(url: url)
+                tapes.append(my_tape)
+            }
         } catch let error as NSError {
             print(error.localizedDescription)
         }
     }
 
-    func directoryURL() -> URL? {
-        let fileManager = FileManager.default
-        let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
-        let documentDirectory = urls[0] as URL
-
-        let format = DateFormatter()
-        format.dateFormat="yyyy-MM-dd, HH:mm:ss"
-        let currentFileName = "Tape \(format.string(from: Date())).m4a"
-        print(currentFileName)
-
-        let soundURL = documentDirectory.appendingPathComponent(currentFileName)
-        return soundURL
-    }
-    
     
     
     //////////////////////////////////
     //// tape recorder interface
     //////////////////////////////////
     
-    var audioRecorder:AVAudioRecorder!
-    
     let recordSettings = [
-        AVSampleRateKey : NSNumber(value: Float(44100.0)),
-        AVFormatIDKey : NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
-        AVNumberOfChannelsKey : NSNumber(value: Int32(1)),
-        AVEncoderAudioQualityKey :
-            NSNumber(value: Int32(AVAudioQuality.medium.rawValue))]
+        AVSampleRateKey: NSNumber(value: Float(44100.0)),
+        AVFormatIDKey: NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
+        AVNumberOfChannelsKey: NSNumber(value: Int32(1)),
+        AVEncoderAudioQualityKey: NSNumber(value: Int32(AVAudioQuality.medium.rawValue))
+    ]
     
     var timer: Timer!
-    
-    @IBOutlet var levelBar: UIView!
+    var audioRecorder:AVAudioRecorder!
+    @IBOutlet weak var levelBar: UIProgressView!
+    @IBOutlet weak var loadedLabel: UILabel!
+    @IBOutlet weak var durationLabel: UILabel!
     @IBOutlet var timestamp: UILabel!
     @IBOutlet weak var recordButton: UIButton!
     @IBOutlet weak var stopButton: UIButton!
     @IBOutlet weak var playButton: UIButton!
     
     func updateAudioMeter(_ timer:Timer) {
-        
         if audioRecorder.isRecording {
             let hour = Int(audioRecorder.currentTime / 360)
             let min = Int(audioRecorder.currentTime / 60)
@@ -114,9 +128,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             audioRecorder.updateMeters()
             // if you want to draw some graphics...
             let apc0 = audioRecorder.averagePower(forChannel:0)
-            print(apc0)
-            let peak0 = audioRecorder.peakPower(forChannel:0)
-            print(peak0)
+            levelBar.setProgress((apc0+60)/100, animated: true)
         }
     }
 
@@ -144,8 +156,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         } catch {
             // there was an error relinquishing the audio session
         }
-        
-        // and update the tape view to provide user feedback: tape saved! 
         self.update_tape_view()
     }
     
@@ -170,14 +180,12 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     }
     
     
-    
     ////////////////////////////////////
     //// tape stack interface
     ////////////////////////////////////
     
     var animals = [String]()
     var tape_list = [URL]() // empty list of URL which we will use to keep tapes
-
     
     let cellReuseIdentifier = "cell"
     @IBOutlet var tableView: UITableView!
@@ -191,17 +199,20 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         // create a new cell if needed or reuse an old one
         // set the text from the data model
         let cell:UITableViewCell = self.tableView.dequeueReusableCell(withIdentifier: cellReuseIdentifier) as UITableViewCell!
-        cell.textLabel?.text = self.tape_list[indexPath.row].lastPathComponent
+        cell.textLabel?.text = self.tapes[indexPath.row].name
         return cell
     }
     
     var tp: URL!
+    var loaded_tape: Tape!
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // method to run when table view cell is tapped
         print("You tapped cell number \(indexPath.row).")
-        self.tp = tape_list[indexPath.row]
-        print(self.tp)
+        self.loaded_tape = tapes[indexPath.row]
+        loadedLabel.text = self.loaded_tape.name
+        durationLabel.text = self.loaded_tape.duration
+        print("Tap tapped:", self.loaded_tape.name)
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
