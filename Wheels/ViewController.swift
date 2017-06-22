@@ -9,30 +9,9 @@
 import UIKit
 import AVFoundation
 
+
+
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
-
-    // array of recordings
-    var animals = [String]()
-    var timer: Timer!
-
-
-    func updateAudioMeter(_ timer:Timer) {
-
-        if audioRecorder.isRecording {
-            let hour = Int(audioRecorder.currentTime / 360)
-            let min = Int(audioRecorder.currentTime / 60)
-            let sec = Int(audioRecorder.currentTime.truncatingRemainder(dividingBy: 60))
-            let s = String(format: "%02d:%02d:%02d", hour, min, sec)
-            timestamp.text = s
-            audioRecorder.updateMeters()
-            // if you want to draw some graphics...
-            var apc0 = audioRecorder.averagePower(forChannel:0)
-            print(apc0)
-            var peak0 = audioRecorder.peakPower(forChannel:0)
-            print(peak0)
-        }
-    }
-
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -45,30 +24,14 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         // Register the table view cell class and its reuse id
         self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellReuseIdentifier)
 
-        // This view controller itself will provide the delegate methods and row data for the table view.
-        tableView.delegate = self
-        tableView.dataSource = self
+        self.update_tape_view()
+        self.init_audio()
 
-        // get the "data" (the list of files) for the table
-        // Get the document directory url
-        let documentsUrl =  FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    }
+    
 
-        do {
-            // Get the directory contents urls (including subfolders urls)
-            let directoryContents = try FileManager.default.contentsOfDirectory(at: documentsUrl, includingPropertiesForKeys: nil, options: [])
-            print(directoryContents)
-
-            let my_files = directoryContents.flatMap({$0.lastPathComponent})
-            for fn in my_files {
-                animals.append(fn)
-            }
-
-
-        } catch let error as NSError {
-            print(error.localizedDescription)
-        }
-
-
+    func init_audio() {
+        // function for initializing audio
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(AVAudioSessionCategoryPlayAndRecord)
@@ -78,15 +41,35 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             audioRecorder.prepareToRecord()
         } catch {}
     }
-
-    var audioRecorder:AVAudioRecorder!
-
-    let recordSettings = [
-        AVSampleRateKey : NSNumber(value: Float(44100.0)),
-        AVFormatIDKey : NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
-        AVNumberOfChannelsKey : NSNumber(value: Int32(1)),
-        AVEncoderAudioQualityKey :
-            NSNumber(value: Int32(AVAudioQuality.medium.rawValue))]
+    
+    
+    
+    // 2 utility functions for accessing the "tapes"
+    // as URL from the disk
+    
+    func update_tape_view() {
+        // get the "data" (the list of files) for the table
+        // Get the document directory url
+        let documentsUrl =  FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        do {
+            // Get the directory contents urls (including subfolders urls)
+            let directoryContents = try FileManager.default.contentsOfDirectory(at: documentsUrl, includingPropertiesForKeys: nil, options: [])
+            print(directoryContents)
+            
+            let my_files = directoryContents.flatMap({$0.lastPathComponent})
+            for fn in my_files {
+                animals.append(fn)
+                
+                // right now, it has a side effect! 
+                // change to return this animals list
+            }
+            
+            
+        } catch let error as NSError {
+            print(error.localizedDescription)
+        }
+    }
 
 
     func directoryURL() -> URL? {
@@ -95,13 +78,58 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let documentDirectory = urls[0] as URL
 
         let format = DateFormatter()
-        format.dateFormat="yyyy-MM-dd-HH-mm-ss"
-        let currentFileName = "recording-\(format.string(from: Date())).m4a"
+        format.dateFormat="yyyy-MM-dd, HH:mm:ss"
+        let currentFileName = "Tape \(format.string(from: Date())).m4a"
         print(currentFileName)
 
         let soundURL = documentDirectory.appendingPathComponent(currentFileName)
         return soundURL
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // tape recorder interface
+    
+    var audioRecorder:AVAudioRecorder!
+    
+    let recordSettings = [
+        AVSampleRateKey : NSNumber(value: Float(44100.0)),
+        AVFormatIDKey : NSNumber(value:Int32(kAudioFormatMPEG4AAC)),
+        AVNumberOfChannelsKey : NSNumber(value: Int32(1)),
+        AVEncoderAudioQualityKey :
+            NSNumber(value: Int32(AVAudioQuality.medium.rawValue))]
+    
+    // array of recordings
+    var animals = [String]()
+    var timer: Timer!
+    
+    @IBOutlet var levelBar: UIView!
+    
+    func updateAudioMeter(_ timer:Timer) {
+        
+        if audioRecorder.isRecording {
+            let hour = Int(audioRecorder.currentTime / 360)
+            let min = Int(audioRecorder.currentTime / 60)
+            let sec = Int(audioRecorder.currentTime.truncatingRemainder(dividingBy: 60))
+            let s = String(format: "%02d:%02d:%02d", hour, min, sec)
+            timestamp.text = s
+            audioRecorder.updateMeters()
+            // if you want to draw some graphics...
+            let apc0 = audioRecorder.averagePower(forChannel:0)
+            print(apc0)
+            let peak0 = audioRecorder.peakPower(forChannel:0)
+            print(peak0)
+        }
+    }
+    
+    
+
 
     @IBOutlet var timestamp: UILabel!
 
@@ -123,17 +151,36 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         }
     }
 
+    
     @IBOutlet weak var stopButton: UIButton!
+    @IBOutlet weak var playButton: UIButton!
 
-    @IBAction func doStopAction(_ sender:
-        AnyObject) {
-        print("Stop recording")
+    @IBAction func doStopAction(_ sender: Any) {
+        // function to run when "Stop" is pressed
+        print("Stop was pressed")
         audioRecorder.stop()
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setActive(false)
-        } catch {}
+        } catch {
+            // there was an error relinquishing the audio session
+        }
     }
+    
+    @IBAction func doPlayAction(_ sender: Any) {
+        // function to run when "Play" is pressed
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // tape deck / stack interface
 
     // cell reuse id (cells that scroll out of view can be reused)
     let cellReuseIdentifier = "cell"
