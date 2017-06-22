@@ -150,6 +150,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         // function to run when "Stop" is pressed
         print("Stop was pressed")
         audioRecorder.stop()
+        player.stop()
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setActive(false)
@@ -159,22 +160,23 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         self.update_tape_view()
     }
     
-    var player: AVAudioPlayer = AVAudioPlayer()
-    
+    var player = AVAudioPlayer()
     @IBAction func doPlayAction(_ sender: Any) {
         // function to run when "Play" is pressed
         
-        if let tape_url = tp {
+        if let tape = self.loaded_tape {
             // if a tape has been loaded 
-            // play that tape 
+            // play that tape
+            
+            print(tape.url)
+            
             
             do {
-                try player = AVAudioPlayer(contentsOf: tape_url)
+                try player = AVAudioPlayer(contentsOf: tape.url)
+                print(player)
                 player.play()
             } catch {
-                // error setting up player
-                // or player
-                print("Error playing")
+                print("ERROR")
             }
         }
     }
@@ -208,11 +210,11 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // method to run when table view cell is tapped
-        print("You tapped cell number \(indexPath.row).")
         self.loaded_tape = tapes[indexPath.row]
         loadedLabel.text = self.loaded_tape.name
         durationLabel.text = self.loaded_tape.duration
-        print("Tap tapped:", self.loaded_tape.name)
+        print("You tapped cell number \(indexPath.row).")
+        print("Tape tapped:", self.loaded_tape.name)
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
